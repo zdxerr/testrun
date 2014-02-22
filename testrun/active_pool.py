@@ -15,7 +15,7 @@ def __get_logger(name):
     # logger = logging.getLogger(name)
     l.setLevel(logging.INFO)
     file_handler = logging.FileHandler(
-        os.path.join('e:', 'testlogs', name + '.log'), mode='a', 
+        os.path.join(os.getcwd(), 'testlogs', name + '.log'), mode='a', 
         encoding=None, delay=False)
     l.addHandler(file_handler)
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
