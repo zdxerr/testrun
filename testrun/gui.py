@@ -85,7 +85,7 @@ class App:
         yscrollbar.pack(side=RIGHT, fill=Y)
 
 
-        text = tkinter.Text(frame, width=40, height=10, 
+        text = tkinter.Text(frame, width=80, height=30, 
                             font=("Ubuntu", 13),
                             wrap=NONE,
                             xscrollcommand=xscrollbar.set,
@@ -102,12 +102,21 @@ class App:
         text.insert(INSERT, "link", hyperlink.add(self.click))
         text.insert(INSERT, "\n\n")
 
-        text.tag_config("code", font=("SourceCodePro", 13))
+        text.tag_config("code", font=("SourceCodePro", 13), background='lightgray')
         text.tag_config("bold", font=("Ubuntu", 13, "bold"))
         text.tag_config("italic", font=("Ubuntu", 13, "italic"))
         text.insert(END, "HELLO\n\n", ("bold"))
         text.insert(END, "HELLO\n\n", ("italic"))
         text.insert(END, "BOTH\n\n", ("bold", "italic"))
+
+        text.tag_config('block1', lmargin1=15)
+        text.tag_config('block2', lmargin1=25)
+        text.tag_config('block3', lmargin1=35)
+
+        text.insert(END, "line1\n", ("block1"))
+        text.insert(END, "line2\n", ("block2"))
+        text.insert(END, "line3\n", ("block3"))
+
 
         code_string = """# For loop on a list
 >>> list = [2, 4, 6, 8]
@@ -130,6 +139,25 @@ The sum is: 20"""
     def click_link(self, event, text):
         print("you clicked '%s'" % text)
 
+
+def question(func):
+    print(func)
+    print(func.__doc__)
+    def inner(*args, **kwargs): #1
+        print("Arguments were: %s, %s" % (args, kwargs))
+        return func(*args, **kwargs) #2
+    return inner
+
+@question
+def set_task_configuration(test):
+    """
+    Set the **configuration** to _something_.
+    """
+    pass
+
 root=tkinter.Tk()
 app = App(root)
 root.mainloop()
+
+
+
