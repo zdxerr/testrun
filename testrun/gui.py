@@ -4,6 +4,9 @@
 from pprint import pprint
 
 import tkinter as tk
+import tkinter.ttk as ttk
+from PIL import Image, ImageTk
+
 
 class HyperlinkManager:
     def __init__(self, text):
@@ -39,6 +42,15 @@ class HyperlinkManager:
                 self.links[tag]()
                 return
 
+class ImageManager:
+    def __init__(self, text):
+        self.text = text
+        self.images = {}
+
+    def add(self, file):
+        image = self.images[file] = ImageTk.PhotoImage(Image.open(file))
+        return image
+
 
 class ScrolledText(tk.Text):
     def __init__(self, master, name, **kwargs):
@@ -61,6 +73,7 @@ class ScrolledText(tk.Text):
         self.pack(expand=True, fill=tk.BOTH)
 
         self.links = HyperlinkManager(self)
+        self.images = ImageManager(self)
 
 
 
@@ -68,7 +81,7 @@ class ScrolledText(tk.Text):
         super(ScrolledText, self).pack(expand=True, fill=tk.BOTH)
         self.frame.pack(*args, **kwargs)
 
-def click(self):
+def click():
     print("CLICK!")
 
 def add_text_example(question):
@@ -87,9 +100,13 @@ def add_text_example(question):
     question.tag_config('block2', lmargin1=25)
     question.tag_config('block3', lmargin1=35)
 
-    question.insert(tk.END, "line1\n", ("block1"))
+
+
+    question.image_create(tk.END, image=question.images.add('flowers.jpg'))
+
+    question.insert(tk.END, "\nline1\n", ("block1"))
     question.insert(tk.END, "line2\n", ("block2"))
-    question.insert(tk.END, "line3\n", ("block3"))
+    question.insert(tk.END, "line3\n\n", ("block3"))
 
 
     code_string = '\n'.join([
@@ -105,22 +122,104 @@ def add_text_example(question):
 
     question.config(state=tk.DISABLED)
 
+class ProgressBar(tk.Canvas):
+    def __init__(self, master, values=[0], **kwargs):
+        super(ProgressBar, self).__init__(master, **kwargs)
+
+        self.values = values
+        self.colors = ['#96c6e2', '#2b8cc4']
+        self.text = ''
+        self.text_color = '#003a69'
+        self.text_color_active = '#000000'
+
+        self.bind("<Configure>", self.on_resize)
+
+    def on_resize(self, event):
+        print('YOHO', event)
+        print('RESIZE_PB', event.type, event.height, event.width)
+
+        px_per_row = event.height / len(self.values)
+
+        # px_per_row = event.height / rows
+        print('px_per_row', px_per_row)
+        # print('rows', rows)
+
+        for index, value in enumerate(self.values):
+            print('value * event.width', value * event.width)
+            self.create_rectangle(0, index * px_per_row, 
+                                  value * event.width, (index + 1) * px_per_row, 
+                                  fill=self.colors[index], outline='')
+        # progress_bar.create_rectangle(0, 8, 170, 16, fill="#2b8cc4", outline='')
+
+        self.create_text((5, event.height / 2), anchor=tk.W, fill='#003a69', activefill='#000000', font=("Calibri", 9), text=self.text)
+
+
 class App(tk.Tk):
     def __init__(self, *args, **kwargs):
         super(App, self).__init__(*args, **kwargs)
 
         # always on top
         self.wm_attributes("-topmost", 1)
+        # transparency
+        self.attributes("-alpha", 0.85)
 
         self.title("Teststep")
+        self.iconbitmap("icons\\accept.ico")
+
+        status_frame = ttk.Frame(self)
+
+        status_frame.pack(side=tk.BOTTOM, fill=tk.X)
+
+        ttk.Sizegrip(status_frame).pack(side=tk.RIGHT)
+
+        measureSystem = tk.StringVar()
+
+
+        def changed():
+            print('OHO!', measureSystem.get())
+
+
+        check = ttk.Checkbutton(status_frame, text='Always on top', 
+                                command=changed, variable=measureSystem, 
+                                onvalue='metric', offvalue='imperial')
+        check.pack(side=tk.RIGHT)
+
+        # progress_bar = tk.Canvas(status_frame, height=16) 
+        progress_bar = ProgressBar(status_frame, values=[0.93, 0.75], height=0)
+        progress_bar.pack(side=tk.BOTTOM, expand=True, fill=tk.BOTH)
+
+        # def resize_pb(event):
+        #     print('YOHO', event)
+        #     print('RESIZE_PB', event.type, event.height, event.width)
+
+        # progress_bar.bind("<Configure>", resize_pb)
+
+        # progress_bar.create_rectangle(0, 0, 50, 8, fill="#96c6e2", outline='')
+        # progress_bar.create_rectangle(0, 8, 170, 16, fill="#2b8cc4", outline='')
+        # progress_bar.create_text((5, 2), anchor=tk.NW, fill='#003a69', activefill='#000000', font=("Calibri", 9), text="Hello World!")
+
+        frame_buttons = tk.Frame(self, pady=3)
+
+        button_passed = tk.Button(frame_buttons, text="Passed", height=1, command=self.click)
+        button_passed.pack(expand=True, fill=tk.X, side=tk.LEFT, padx=3)
+        button_failed = tk.Button(frame_buttons, text="Failed", width=12, height=1, command=self.click)
+        button_failed.pack(expand=True, fill=tk.X, side=tk.LEFT, padx=3)
+        button_blocked = tk.Button(frame_buttons, text="Blocked", width=12, height=1, command=self.click)
+        button_blocked.pack(expand=True, fill=tk.X, side=tk.LEFT, padx=3)
+
+        frame_buttons.pack(side=tk.BOTTOM, expand=True, fill=tk.X)
+
+        pb = ttk.Progressbar(self, orient=tk.HORIZONTAL, 
+                             mode='determinate')
+        pb.pack(side=tk.BOTTOM, expand=True, fill=tk.BOTH)
 
         paned = tk.PanedWindow(self, orient=tk.VERTICAL, sashpad=3, 
                                sashwidth=3, sashrelief=tk.RAISED)
         paned.pack(expand=True, fill=tk.BOTH, pady=3)
-        pprint(paned.keys())
+        # pprint(paned.keys())
 
         task = ScrolledText(paned, 'Task', width=80, font=("Calibri", 14), 
-                                wrap=tk.NONE)
+                            wrap=tk.NONE)
         paned.add(task.frame)
         # task.pack(expand=True, fill=tk.BOTH)
 
@@ -129,24 +228,28 @@ class App(tk.Tk):
         comment = ScrolledText(self, 'Comment', width=80, height=5, font=("Calibri", 14), wrap=tk.NONE)
         paned.add(comment.frame)
 
-        frame_buttons = tk.Frame(self, pady=3)
 
-        pprint(frame_buttons.keys())
+        def ignore(event):
+            print('YOHO', event)
+            # pprint(dir(event))
+            # print(event.type, event.height)
+            print(event.widget.sash_coord(0))
+            # print(event.delta)
+            # event.widget.sash_place(0, 1, int(event.height / 2))
 
-        button_passed = tk.Button(frame_buttons, text="Passed", height=1, command=click)
-        button_passed.pack(expand=True, fill=tk.X, side=tk.LEFT, padx=3)
-        button_failed = tk.Button(frame_buttons, text="Failed", width=12, height=1, command=click)
-        button_failed.pack(expand=True, fill=tk.X, side=tk.LEFT, padx=3)
-        button_blocked = tk.Button(frame_buttons, text="Blocked", width=12, height=1, command=click)
-        button_blocked.pack(expand=True, fill=tk.X, side=tk.LEFT, padx=3)
+        paned.bind("<Configure>", ignore)
 
-
-        frame_buttons.pack(expand=True, fill=tk.X)
-
+        
     
 
-    def click_link(self, event, text):
-        print("you clicked '%s'" % text)
+    def click(self):
+        import os
+        import random
+        icons = [os.path.join('icons', f) 
+                 for f in os.listdir('icons') 
+                 if f.endswith('.ico')]
+        print("you clicked")
+        self.iconbitmap(random.choice(icons))
 
 
 def question(func):

@@ -1,0 +1,7 @@
+{
+    "position": {"x": 100, "y": 600},
+    "size": {"w": 100, "h": 600},
+    "always_on_top": true,
+    "show_progress": true,
+    
+}
