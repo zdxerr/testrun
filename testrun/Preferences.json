@@ -1,7 +1,14 @@
 {
-    "position": {"x": 100, "y": 600},
-    "size": {"w": 100, "h": 600},
-    "always_on_top": true,
-    "show_progress": true,
-    
+    "alpha": 0.85, 
+    "always_on_top": true, 
+    "position": {
+        "x": 66, 
+        "y": 66
+    }, 
+    "sash_position": 591, 
+    "show_progress": true, 
+    "size": {
+        "h": 806, 
+        "w": 822
+    }
 }

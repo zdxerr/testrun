@@ -1,11 +1,19 @@
 """
 """
 
+import os
 from pprint import pprint
+import json
+import logging
+import random
 
 import tkinter as tk
 import tkinter.ttk as ttk
 from PIL import Image, ImageTk
+
+from preferences import Preferences
+
+logger = logging.getLogger(__name__)
 
 
 class HyperlinkManager:
@@ -131,32 +139,34 @@ class ProgressBar(tk.Canvas):
         self.text = ''
         self.text_color = '#003a69'
         self.text_color_active = '#000000'
+        self.font = ("Calibri", 9)
 
         self.bind("<Configure>", self.on_resize)
 
     def on_resize(self, event):
-        print('YOHO', event)
-        print('RESIZE_PB', event.type, event.height, event.width)
-
         px_per_row = event.height / len(self.values)
 
-        # px_per_row = event.height / rows
-        print('px_per_row', px_per_row)
-        # print('rows', rows)
-
         for index, value in enumerate(self.values):
-            print('value * event.width', value * event.width)
             self.create_rectangle(0, index * px_per_row, 
                                   value * event.width, (index + 1) * px_per_row, 
                                   fill=self.colors[index], outline='')
-        # progress_bar.create_rectangle(0, 8, 170, 16, fill="#2b8cc4", outline='')
 
-        self.create_text((5, event.height / 2), anchor=tk.W, fill='#003a69', activefill='#000000', font=("Calibri", 9), text=self.text)
+        self.create_text((5, event.height / 2), anchor=tk.W, 
+                         fill=self.text_color, 
+                         activefill=self.text_color_active, 
+                         font=self.font, 
+                         text=self.text)
 
 
 class App(tk.Tk):
     def __init__(self, *args, **kwargs):
         super(App, self).__init__(*args, **kwargs)
+
+        self.i = 0
+        self.o = 0
+        self.__flush_id = 0
+        self.preferences = Preferences(on_load=self.configure)
+
 
         # always on top
         self.wm_attributes("-topmost", 1)
@@ -174,7 +184,6 @@ class App(tk.Tk):
 
         measureSystem = tk.StringVar()
 
-
         def changed():
             print('OHO!', measureSystem.get())
 
@@ -184,67 +193,69 @@ class App(tk.Tk):
                                 onvalue='metric', offvalue='imperial')
         check.pack(side=tk.RIGHT)
 
-        # progress_bar = tk.Canvas(status_frame, height=16) 
-        progress_bar = ProgressBar(status_frame, values=[0.93, 0.75], height=0)
+        progress_bar = ProgressBar(status_frame, values=[0.93, 0.75], height=5)
         progress_bar.pack(side=tk.BOTTOM, expand=True, fill=tk.BOTH)
-
-        # def resize_pb(event):
-        #     print('YOHO', event)
-        #     print('RESIZE_PB', event.type, event.height, event.width)
-
-        # progress_bar.bind("<Configure>", resize_pb)
-
-        # progress_bar.create_rectangle(0, 0, 50, 8, fill="#96c6e2", outline='')
-        # progress_bar.create_rectangle(0, 8, 170, 16, fill="#2b8cc4", outline='')
-        # progress_bar.create_text((5, 2), anchor=tk.NW, fill='#003a69', activefill='#000000', font=("Calibri", 9), text="Hello World!")
 
         frame_buttons = tk.Frame(self, pady=3)
 
-        button_passed = tk.Button(frame_buttons, text="Passed", height=1, command=self.click)
+        button_passed = tk.Button(frame_buttons, text="Passed", height=1, 
+                                  command=self.click)
         button_passed.pack(expand=True, fill=tk.X, side=tk.LEFT, padx=3)
-        button_failed = tk.Button(frame_buttons, text="Failed", width=12, height=1, command=self.click)
+        button_failed = tk.Button(frame_buttons, text="Failed", width=12, 
+                                  height=1, command=self.click)
         button_failed.pack(expand=True, fill=tk.X, side=tk.LEFT, padx=3)
-        button_blocked = tk.Button(frame_buttons, text="Blocked", width=12, height=1, command=self.click)
+        button_blocked = tk.Button(frame_buttons, text="Blocked", width=12, 
+                                   height=1, command=self.click)
         button_blocked.pack(expand=True, fill=tk.X, side=tk.LEFT, padx=3)
 
         frame_buttons.pack(side=tk.BOTTOM, expand=True, fill=tk.X)
 
-        pb = ttk.Progressbar(self, orient=tk.HORIZONTAL, 
-                             mode='determinate')
-        pb.pack(side=tk.BOTTOM, expand=True, fill=tk.BOTH)
+        self.task_comment = tk.PanedWindow(self, orient=tk.VERTICAL, sashpad=3, 
+                                           sashwidth=3, sashrelief=tk.RAISED)
+        self.task_comment.pack(expand=True, fill=tk.BOTH, pady=3)
 
-        paned = tk.PanedWindow(self, orient=tk.VERTICAL, sashpad=3, 
-                               sashwidth=3, sashrelief=tk.RAISED)
-        paned.pack(expand=True, fill=tk.BOTH, pady=3)
-        # pprint(paned.keys())
+        self.task = ScrolledText(self.task_comment, 'Task', width=80, 
+                                 font=("Calibri", 14), wrap=tk.NONE)
+        self.task_comment.add(self.task.frame, stretch='always')
 
-        task = ScrolledText(paned, 'Task', width=80, font=("Calibri", 14), 
-                            wrap=tk.NONE)
-        paned.add(task.frame)
-        # task.pack(expand=True, fill=tk.BOTH)
-
-        add_text_example(task)
+        add_text_example(self.task)
         
-        comment = ScrolledText(self, 'Comment', width=80, height=5, font=("Calibri", 14), wrap=tk.NONE)
-        paned.add(comment.frame)
+        comment = ScrolledText(self, 'Comment', width=80, height=5, 
+                               font=("Calibri", 14), wrap=tk.NONE)
+        self.task_comment.add(comment.frame, stretch='always')
+
+        self.bind("<Configure>", self.on_configure)
+        self.task.frame.bind("<Configure>", self.on_configure)
 
 
-        def ignore(event):
-            print('YOHO', event)
-            # pprint(dir(event))
-            # print(event.type, event.height)
-            print(event.widget.sash_coord(0))
-            # print(event.delta)
-            # event.widget.sash_place(0, 1, int(event.height / 2))
+    def test(self):
+        self.preferences.flush()
+        print('call', self.i)
+        self.i += 1
 
-        paned.bind("<Configure>", ignore)
+    def configure(self, preferences):
+        logger.debug("New configuration %d", self.o)
+        self.o += 1
 
-        
-    
+    def on_configure(self, event):
+        self.after_cancel(self.__flush_id)
 
+        if event.widget is self:
+            self.preferences['position'] = {'x': event.x, 'y': event.y}
+            self.preferences['size'] = {'w': event.width, 'h': event.height}
+        elif event.widget is self.task.frame:
+            __, self.preferences['sash_position'] = self.task_comment.sash_coord(0)
+
+        self.after_cancel(self.__flush_id)
+        self.__flush_id = self.after_idle(self.test)
+
+    def destroy(self):
+        logger.debug('Destroy window')
+        super(App, self).destroy()
+        self.preferences.stop()
+
+      
     def click(self):
-        import os
-        import random
         icons = [os.path.join('icons', f) 
                  for f in os.listdir('icons') 
                  if f.endswith('.ico')]
@@ -270,9 +281,20 @@ def set_task_configuration(test):
 
 
 if __name__ == '__main__':
+    logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s',
+                        level=logging.DEBUG)
     # root=tkinter.Tk()
+
+    # preferences = Preferences()
+
+    # observer = Observer()
+    # observer.schedule(PreferenceHandler(), path='.', recursive=False)
+    # observer.start()
+
+
     app = App()
     app.mainloop()
 
 
-
+    # observer.stop()
+    # observer.join()
