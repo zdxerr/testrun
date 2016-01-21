@@ -50,6 +50,7 @@ class HyperlinkManager:
                 self.links[tag]()
                 return
 
+
 class ImageManager:
     def __init__(self, text):
         self.text = text

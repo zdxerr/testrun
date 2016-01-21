@@ -2,8 +2,8 @@
     "alpha": 0.85, 
     "always_on_top": true, 
     "position": {
-        "x": 66, 
-        "y": 66
+        "x": 419, 
+        "y": 87
     }, 
     "sash_position": 591, 
     "show_progress": true, 
